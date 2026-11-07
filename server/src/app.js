@@ -29,7 +29,11 @@ app.use((req, res, next) => {
     );
   };
 
-  if (check(req.body) || check(req.query) || check(req.params)) {
+  if (
+  check(req.body) ||
+  check(req.params) ||
+  (req.path !== '/api/instructors/search' && check(req.query))
+) {
     return res.status(400).json({
       message: 'Invalid request: prohibited MongoDB operators'
     });
