@@ -1,11 +1,12 @@
 import dotenv from 'dotenv';
 dotenv.config();
+
 import mongoose from 'mongoose';
 import { connectDB } from '../config/db.js';
 import { Instructor } from '../models/Instructor.js';
 
-// Seed data for the Instructor Portal NoSQL injection lab.
-// Passwords are plaintext ON PURPOSE (see Instructor model / Flow.md).
+// Demo accounts for the security lab.
+// Passwords will be hashed automatically by the Instructor model.
 const instructors = [
   {
     name: 'Prof. Alice Smith',
@@ -35,7 +36,6 @@ const instructors = [
     privatePhone: '+1-555-0103'
   },
   {
-    // The high-value target: the only superadmin, holding the API key.
     name: 'Portal Administrator',
     username: 'admin',
     password: 'S3cr3t-Admin-Pw!',
@@ -48,19 +48,34 @@ const instructors = [
 ];
 
 async function run() {
-  await connectDB();
-  await Instructor.deleteMany({});
-  const created = await Instructor.insertMany(instructors);
-  console.log(`Seeded ${created.length} instructor(s):`);
-  for (const i of created) {
-    console.log(`  - ${i.username} (${i.role})`);
+  try {
+    await connectDB();
+
+    // WARNING: This deletes existing instructor accounts.
+    // Only use this script with the lab's development database.
+    await Instructor.deleteMany({});
+
+    // create() runs the model's pre('save') password-hashing hook.
+    const created = await Instructor.create(instructors);
+
+    console.log(`Seeded ${created.length} instructor(s):`);
+
+    for (const instructor of created) {
+      console.log(`  - ${instructor.username} (${instructor.role})`);
+    }
+
+    console.log('Instructor passwords have been hashed successfully.');
+  } finally {
+    await mongoose.disconnect();
   }
-  await mongoose.disconnect();
-  console.log('Done.');
-  process.exit(0);
 }
 
-run().catch((err) => {
-  console.error('Seed failed:', err);
-  process.exit(1);
-});
+run()
+  .then(() => {
+    console.log('Done.');
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error('Seed failed:', err);
+    process.exit(1);
+  });
